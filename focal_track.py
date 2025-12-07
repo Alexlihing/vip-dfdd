@@ -709,9 +709,17 @@ def depth_for_pair(img1_path: str, img2_path: str,
     ax_col = plt.subplot(1, 3, 2); plt.imshow(cv2.cvtColor(color_out, cv2.COLOR_BGR2RGB)); plt.title('Depth (colored)'); plt.axis('off')
     try:
         import matplotlib as mpl
-        vis_vals = np.array(vis); vis_finite = vis_vals[np.isfinite(vis_vals)]
-        vmin, vmax = (float(np.nanmin(vis_finite)), float(np.nanmax(vis_finite))) if vis_finite.size > 0 else (0.0, 1.0)
-        cmap = plt.get_cmap('viridis'); norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+        vis_vals = np.array(vis)
+        vis_finite = vis_vals[np.isfinite(vis_vals)]
+        if vis_finite.size > 0:
+            cmap = plt.get_cmap('turbo')
+            quantiles = np.linspace(0.0, 1.0, cmap.N + 1)
+            bounds = np.quantile(vis_finite, quantiles)
+            bounds = np.maximum.accumulate(bounds)  # keep boundaries non-decreasing
+            norm = mpl.colors.BoundaryNorm(boundaries=bounds, ncolors=cmap.N, clip=True)
+        else:
+            cmap = plt.get_cmap('turbo')
+            norm = mpl.colors.Normalize(vmin=0.0, vmax=1.0)
         sm = mpl.cm.ScalarMappable(cmap=cmap, norm=norm); sm.set_array([])
         plt.colorbar(sm, ax=ax_col, fraction=0.046, pad=0.04, label=('Depth' if have_cal else 'Ratio r'))
     except Exception:
